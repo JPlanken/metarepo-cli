@@ -1,0 +1,62 @@
+version: 2
+
+project_name: metarepo
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: metarepo
+    main: ./cmd/metarepo
+    binary: metarepo
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+# Homebrew tap configuration
+brews:
+  - name: metarepo
+    repository:
+      owner: JPlanken
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+
+    directory: Formula
+
+    homepage: "https://github.com/JPlanken/metarepo-cli"
+    description: "Multi-repository workspace management tool with cross-device sync"
+    license: "MIT"
+
+    install: |
+      bin.install "metarepo"
+
+    test: |
+      system "#{bin}/metarepo", "version"
