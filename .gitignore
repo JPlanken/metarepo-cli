@@ -1,5 +1,5 @@
-# Binaries
-metarepo
+# Binaries (only in root, not cmd/metarepo/)
+/metarepo
 *.exe
 *.dll
 *.so
