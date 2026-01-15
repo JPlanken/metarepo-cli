@@ -61,6 +61,10 @@ func runPull(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Pulling to device: %s (%s)\n\n", deviceName, deviceInfo.Serial)
 
+	// Load config for exclude filtering
+	configPath := filepath.Join(".metarepo", "config.yaml")
+	cfg, _ := config.Load(configPath)
+
 	// Load manifest to check for new repos
 	manifestPath := filepath.Join(".metarepo", "manifest.yaml")
 	manifest, _ := config.LoadManifest(manifestPath)
@@ -109,6 +113,19 @@ func runPull(cmd *cobra.Command, args []string) error {
 	repos, err := git.ScanForRepos(".")
 	if err != nil {
 		return fmt.Errorf("failed to scan for repositories: %w", err)
+	}
+
+	// Filter excluded repos
+	if cfg != nil && len(cfg.Repos.Exclude) > 0 {
+		filtered := make([]*git.RepoInfo, 0, len(repos))
+		for _, repo := range repos {
+			if cfg.IsExcluded(repo.Name) {
+				fmt.Printf("  [EXCL] %s\n", repo.Name)
+			} else {
+				filtered = append(filtered, repo)
+			}
+		}
+		repos = filtered
 	}
 
 	// Pull all repos

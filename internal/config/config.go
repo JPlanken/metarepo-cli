@@ -13,9 +13,15 @@ import (
 type Config struct {
 	Version    string          `yaml:"version"`
 	Workspace  WorkspaceConfig `yaml:"workspace"`
+	Repos      ReposConfig     `yaml:"repos"`
 	Sync       SyncConfig      `yaml:"sync"`
 	Inventory  InventoryConfig `yaml:"inventory"`
 	Logging    LoggingConfig   `yaml:"logging"`
+}
+
+// ReposConfig holds repository filtering settings
+type ReposConfig struct {
+	Exclude []string `yaml:"exclude,omitempty"` // Repo names or patterns to exclude (e.g., "temp-*", "test-repo")
 }
 
 // WorkspaceConfig holds workspace settings
@@ -230,4 +236,18 @@ func (r *DeviceRegistry) UpdateLastSync(serial string) {
 	if d := r.FindDevice(serial); d != nil {
 		d.LastSync = time.Now()
 	}
+}
+
+// IsExcluded checks if a repo name matches any exclude pattern
+func (c *Config) IsExcluded(repoName string) bool {
+	for _, pattern := range c.Repos.Exclude {
+		if matched, _ := filepath.Match(pattern, repoName); matched {
+			return true
+		}
+		// Also check exact match
+		if pattern == repoName {
+			return true
+		}
+	}
+	return false
 }

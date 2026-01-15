@@ -135,6 +135,12 @@ workspace:
   name: "my-workspace"
   root: "/path/to/workspace"
 
+repos:
+  exclude:
+    - "temp-*"           # Wildcard patterns supported
+    - "test-repo"        # Exact match
+    - "old-project"
+
 sync:
   enabled: true
   remote: "git@github.com:user/metarepo.git"
@@ -145,6 +151,22 @@ sync:
 
 inventory:
   output: "REPOS.md"
+```
+
+### Excluding Repositories
+
+Add repo names or patterns to `repos.exclude` to skip them from:
+- `metarepo repo list` (use `--all` to include)
+- `metarepo repo status`
+- `metarepo push`
+- `metarepo pull`
+
+```yaml
+repos:
+  exclude:
+    - "temp-*"      # All repos starting with "temp-"
+    - "archive-*"   # All archived repos
+    - "personal-*"  # Personal repos not for sync
 ```
 
 ## Multi-Device Workflow

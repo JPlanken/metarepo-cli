@@ -57,6 +57,7 @@ var repoRuntimesCmd = &cobra.Command{
 var (
 	repoListShort    bool
 	repoListRuntimes bool
+	repoListAll      bool
 )
 
 func init() {
@@ -69,12 +70,40 @@ func init() {
 
 	repoListCmd.Flags().BoolVarP(&repoListShort, "short", "s", false, "short output format")
 	repoListCmd.Flags().BoolVarP(&repoListRuntimes, "runtimes", "r", false, "show detected runtimes")
+	repoListCmd.Flags().BoolVarP(&repoListAll, "all", "a", false, "include excluded repos")
+}
+
+// filterRepos removes excluded repos based on config
+func filterRepos(repos []*git.RepoInfo, cfg *config.Config) []*git.RepoInfo {
+	if cfg == nil || len(cfg.Repos.Exclude) == 0 {
+		return repos
+	}
+
+	filtered := make([]*git.RepoInfo, 0, len(repos))
+	for _, repo := range repos {
+		if !cfg.IsExcluded(repo.Name) {
+			filtered = append(filtered, repo)
+		}
+	}
+	return filtered
+}
+
+// loadConfigSafe loads config or returns nil if not found
+func loadConfigSafe() *config.Config {
+	configPath := filepath.Join(".metarepo", "config.yaml")
+	cfg, _ := config.Load(configPath)
+	return cfg
 }
 
 func runRepoList(cmd *cobra.Command, args []string) error {
 	repos, err := git.ScanForRepos(".")
 	if err != nil {
 		return fmt.Errorf("failed to scan for repositories: %w", err)
+	}
+
+	// Filter excluded repos unless --all flag is set
+	if !repoListAll {
+		repos = filterRepos(repos, loadConfigSafe())
 	}
 
 	if len(repos) == 0 {
@@ -144,6 +173,9 @@ func runRepoRuntimes(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to scan for repositories: %w", err)
 	}
 
+	// Filter excluded repos
+	repos = filterRepos(repos, loadConfigSafe())
+
 	if len(repos) == 0 {
 		fmt.Println("No repositories found.")
 		return nil
@@ -189,6 +221,9 @@ func runRepoStatus(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to scan for repositories: %w", err)
 	}
+
+	// Filter excluded repos
+	repos = filterRepos(repos, loadConfigSafe())
 
 	if len(repos) == 0 {
 		fmt.Println("No repositories found.")
